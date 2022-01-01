@@ -1,48 +1,41 @@
 chrome.runtime.sendMessage({action: "whatState"});
 
+let mediaRecorder = null;
+
 const messagesFromReactAppListener = async (payload, sender, response) => {
-    if (payload.message === "init") await initSetup(payload.srcObject)
+    if (payload.message === "init") await initSetup(payload)
     if (payload.message === "state is ready") await initSetup()
 }
 chrome.runtime.onMessage.addListener(messagesFromReactAppListener);
 
 
-async function initSetup(srcObject) {
-    await createBottomSection(srcObject);
-}
-
-async function createBottomSection(srcObject) {
+async function initSetup({iframeForUserMediaUrl}) {
     const bottomBox = createBottomBox();
-
-    const video = await createCamVideo();
-    video.srcObject = srcObject;
-    bottomBox.appendChild(video)
-
-    const showVideoButton = createShowVideoButton()
-    bottomBox.appendChild(showVideoButton)
-
-    const controlersRow = createControllersRow()
-    bottomBox.appendChild(controlersRow)
-
+    const iframe = createSelfieVideoIframe(iframeForUserMediaUrl);
+    const controllersRow = createControllersRow();
+    [controllersRow, iframe].forEach(element => {
+        bottomBox.appendChild(element)
+    })
     document.body.appendChild(bottomBox)
 
     chrome.runtime.sendMessage({action: "ready"});
-
 }
 
-async function createCamVideo() {
-    const video = document.createElement("video");
-    video.style.position = "fixed";
-    video.id = "camVideo";
-    video.style.bottom = "15px";
-    video.style.left = "0";
-    video.style.width = "300px";
-    video.style.height = "auto";
-    video.style.clipPath = "circle(40%)";
-    video.autoplay = true;
-    // video.style.cssText = "transform: scale(-1, 1);";
-    // video.srcObject = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-    return video;
+
+function createSelfieVideoIframe(iframeForUserMediaUrl) {
+    const iframe = document.createElement('iframe');
+    iframe.src = iframeForUserMediaUrl
+    Object.keys(iframe.style).forEach(prop => {
+        iframe.style[prop] = "unset"
+    })
+    iframe.allow = "microphone; camera;"
+    iframe.style.position = "fixed";
+    iframe.id = "selfieVideoIframe";
+    iframe.style.bottom = "15px";
+    iframe.style.left = "0";
+    iframe.style.width = "300px";
+    iframe.style.height = "300px";
+    return iframe
 }
 
 function createBottomBox() {
@@ -52,29 +45,9 @@ function createBottomBox() {
     div.style.left = "15px";
     div.style.width = "400px";
     div.style.height = "300px";
-    div.onmouseover = show_or_hide_btn_for_video_visabillity;
-    div.onmouseout = show_or_hide_btn_for_video_visabillity;
+    div.style.zIndex = "5000000";
+    div.id = "bottomBox"
     return div;
-}
-
-function createShowVideoButton() {
-    const showVideoButton = document.createElement("button");
-    showVideoButton.style.position = "absolute";
-    showVideoButton.style.bottom = "185px";
-    showVideoButton.style.left = "30px";
-    showVideoButton.style.zIndex = "2";
-    showVideoButton.style.width = "30px";
-    showVideoButton.style.width = "30px";
-    showVideoButton.style.backgroundColor = "gray";
-    showVideoButton.style.color = "white";
-    showVideoButton.style.clipPath = "circle(40%)";
-    showVideoButton.style.border = "unset";
-    showVideoButton.style.fontSize = "22px";
-    showVideoButton.style.visibility = "hidden";
-    showVideoButton.innerText = "x";
-    showVideoButton.id = "showVideoButton";
-    showVideoButton.onclick = hideVideo
-    return showVideoButton;
 }
 
 function createControllersRow() {
@@ -96,7 +69,8 @@ function createControllersRow() {
     row.appendChild(createHideRowBtn());
     return row
 }
-function createControlerBtn(){
+
+function createControlerBtn() {
     const btn = document.createElement("button");
     btn.style.zIndex = "3";
     btn.style.width = "50px";
@@ -113,91 +87,114 @@ function createControlerBtn(){
 
 function createPlayBtn() {
     const btn = createControlerBtn();
-    btn.innerText ="P"
+    btn.innerText = "P"
     btn.style.backgroundColor = "orange";
-    btn.style.color ="wight"
+    btn.style.color = "wight"
     btn.id = "playBtn";
-    btn.onclick=handlePlayBtnClick
+    btn.onclick = handlePlayBtnClick
     return btn;
 }
-function handlePauseBtnClick(){
+
+function handlePauseBtnClick() {
 
 }
 
 function createPauseBtn() {
-    const btn = createControlerBtn();;
-    btn.innerText ="||"
-    btn.style.color ="gray"
+    const btn = createControlerBtn();
+
+    btn.innerText = "||"
+    btn.style.color = "gray"
     btn.id = "pauseBtn";
-    btn.onclick=handlePauseBtnClick
+    btn.onclick = handlePauseBtnClick
     return btn;
 }
-async function handlePlayBtnClick(){
-    //todo  לממש את התחלת הוידאו ולשלוח את הנתונים לבקגראונד ולשרת
-    await startRecording()
 
+async function handlePlayBtnClick() {
+    await startRecording()
 }
 
 function createCancelBtn() {
     const btn = createControlerBtn();
-    btn.innerText ="X"
-    btn.style.color ="red"
+    btn.innerText = "X"
+    btn.style.color = "red"
     btn.id = "cancelBtn";
-    btn.onclick=handleCancelBtnClick;
+    btn.onclick = handleCancelBtnClick;
     return btn;
 }
-function handleCancelBtnClick(){
+
+function handleCancelBtnClick() {
 
 }
 
 function createHideRowBtn() {
     const btn = createControlerBtn();
-    btn.innerText ="..."
-    btn.style.color ="black"
-    btn.style.paddingBottom ="8px"
-    btn.style.width ="30px";
-    btn.style.height ="30px";
+    btn.innerText = "..."
+    btn.style.color = "black"
+    btn.style.paddingBottom = "8px"
+    btn.style.width = "30px";
+    btn.style.height = "30px";
     btn.id = "HideRowBtn";
-    btn.onclick=handleHideRowBtnClick;
+    btn.onclick = handleHideRowBtnClick;
     return btn;
 }
-function handleHideRowBtnClick(){
+
+function handleHideRowBtnClick() {
     const row = document.getElementById("ControllersRow")
-    row.childNodes.forEach((btn,i)=>{
-        if (i===row.childNodes.length-1) return
+    row.childNodes.forEach((btn, i) => {
+        if (i === row.childNodes.length - 1) return
         btn.style.visibility = btn.style.visibility === "hidden" ? "visible" : "hidden"
     })
 }
 
-
-
-
-function hideVideo() {
-    const video = document.getElementById('camVideo');
-    video.style.visibility = video.style.visibility === "hidden" ? "visible" : "hidden"
-
-    const showVideoButton = document.getElementById('showVideoButton');
-    showVideoButton.innerText = showVideoButton.innerText === "x" ? "+" : "x"
-}
+let stream=null;
 async function startRecording() {
     const displayMediaOptions = {video: {cursor: "always"}, audio: false};
-    let captureStream = null;
     try {
-        const stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions)
-        const video = document.createElement('video')
-        video.srcObject = stream
-        video.autoplay = true
-        video.style.width = "500px"
-        video.style.position = "absolute"
-        video.style.top = "10%";
-        video.style.left = "20%";
-        video.id = "screenShare";
-        document.body.appendChild(video)
+        stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+        await initMediaRecorder(stream)
+        mediaRecorder.start(2000);
+        console.log("recorder started");
+        turnPlayBtnToStopBtn()
     } catch (err) {
         console.error("Error: " + err);
     }
 }
-function show_or_hide_btn_for_video_visabillity() {
-    const showVideoButtontn = document.getElementById('showVideoButton');
-    showVideoButtontn.style.visibility = showVideoButtontn.style.visibility === "visible" ? "hidden" : "visible";
+
+async function initMediaRecorder(stream) {
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.onstop = function (e) {
+        console.log("mediaRecorder stoped");
+    }
+    mediaRecorder.ondataavailable = sendDataToBackground;
+}
+
+async function sendDataToBackground(e) {
+    console.log("sending blob to background ",e.data)
+    const url = URL.createObjectURL(e.data);
+    chrome.runtime.sendMessage({action: "uploadBlob",url});
+}
+
+function turnPlayBtnToStopBtn() {
+    const playBtn = document.getElementById("playBtn")
+    playBtn.innerText = 'S';
+    playBtn.onclick = handleStopBtnClick
+}
+
+function handleStopBtnClick() {
+    mediaRecorder.stop();
+    console.log("recorder stopped");
+    const playBtn = document.getElementById("playBtn")
+    playBtn.innerText = 'P';
+    playBtn.onclick = handlePlayBtnClick;
+    chrome.runtime.sendMessage({action: "stop"});
+    stopCapture()
+}
+
+function stopCapture() {
+    let tracks = stream.getTracks();
+    tracks.forEach(track => {
+        track.stop();
+        track.enabled = false
+    });
+    stream = null;
 }

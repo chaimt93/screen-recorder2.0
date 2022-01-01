@@ -7,6 +7,8 @@ chrome.runtime.onMessage.addListener(
         if (request.action === 'setUp') setUp()
         if (request.action === 'ready') setReady()
         if (request.action === 'whatState') informContentWhatState(sender)
+        if (request.action === 'uploadBlob') uploadBlob(request)
+        if (request.action === 'stop') downloadVideo(request)
     })
 
 function informContentWhatState(sender) {
@@ -20,13 +22,13 @@ function informContentWhatState(sender) {
 
 async function setUp() {
     try {
+        const iframeForUserMediaUrl = chrome.runtime.getURL('../helpers/iframe-for-userMedia/index.html');
         chrome.tabs.query({active: true, lastFocusedWindow: true}, async (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {message: "init"}, () => {
+            chrome.tabs.sendMessage(tabs[0].id, {message: "init", iframeForUserMediaUrl}, () => {
             })
         });
     } catch (e) {
         console.log(e)
-        debugger
     }
 }
 
@@ -47,5 +49,25 @@ function check_if_user_connected() {
     }
 }
 
+let blobs = [];
 
+async function uploadBlob(request) {
+    try {
+        const blob = await fetch(request.url).then(r => r.blob());
+        URL.revokeObjectURL(request.url);
+        blobs.push(blob)
+    } catch (e) {
+        return null
+    }
+}
+
+async function downloadVideo(request) {
+    try {
+        const blob = new Blob(blobs, {type: "video/webm"});
+        const url = URL.createObjectURL(blob);
+        chrome.downloads.download({url, filename: new Date().getTime().toString()});
+    } catch (e) {
+        return null
+    }
+}
 
