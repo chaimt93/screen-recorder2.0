@@ -1,5 +1,4 @@
 async function setUpVideoDiv(){
-
     const div = createDiv()
     const showVideoButton = createShowVideoButton();
     div.appendChild(showVideoButton)
@@ -59,6 +58,8 @@ function createSelfieVideo() {
     video.style.width = "300px";
     video.style.height = "300px";
     video.style.clipPath = "circle(37%)";
+    video.style.webkitTransform = "scaleX(-1);";
+    video.style.transform = "scaleX(-1)";
     video.autoplay = true;
     return video;
 }

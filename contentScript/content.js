@@ -8,8 +8,16 @@ const messagesFromReactAppListener = async (payload, sender, response) => {
 }
 chrome.runtime.onMessage.addListener(messagesFromReactAppListener);
 
-
+function add_google_icons_to_page(){
+    const head = document.getElementsByTagName('head')[0];
+    const link = document.createElement('link');
+    link.type = 'text/css';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+    head.appendChild(link);
+}
 async function initSetup({iframeForUserMediaUrl}) {
+    add_google_icons_to_page()
     const bottomBox = createBottomBox();
     const iframe = createSelfieVideoIframe(iframeForUserMediaUrl);
     const controllersRow = createControllersRow();
@@ -20,7 +28,6 @@ async function initSetup({iframeForUserMediaUrl}) {
 
     chrome.runtime.sendMessage({action: "ready"});
 }
-
 
 function createSelfieVideoIframe(iframeForUserMediaUrl) {
     const iframe = document.createElement('iframe');
@@ -87,7 +94,7 @@ function createControlerBtn() {
 
 function createPlayBtn() {
     const btn = createControlerBtn();
-    btn.innerText = "P"
+    btn.innerHTML = '<i class="material-icons">play_arrow</i>';
     btn.style.backgroundColor = "orange";
     btn.style.color = "wight"
     btn.id = "playBtn";
@@ -102,7 +109,7 @@ function handlePauseBtnClick() {
 function createPauseBtn() {
     const btn = createControlerBtn();
 
-    btn.innerText = "||"
+    btn.innerHTML = '<i class="material-icons">pause</i>'
     btn.style.color = "gray"
     btn.id = "pauseBtn";
     btn.onclick = handlePauseBtnClick
@@ -115,7 +122,7 @@ async function handlePlayBtnClick() {
 
 function createCancelBtn() {
     const btn = createControlerBtn();
-    btn.innerText = "X"
+    btn.innerHTML = '<i class="material-icons">close</i>'
     btn.style.color = "red"
     btn.id = "cancelBtn";
     btn.onclick = handleCancelBtnClick;
@@ -146,13 +153,14 @@ function handleHideRowBtnClick() {
     })
 }
 
-let stream=null;
+let stream = null;
+
 async function startRecording() {
     const displayMediaOptions = {video: {cursor: "always"}, audio: false};
     try {
         stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
         await initMediaRecorder(stream)
-        mediaRecorder.start(2000);
+        mediaRecorder.start(100);
         console.log("recorder started");
         turnPlayBtnToStopBtn()
     } catch (err) {
@@ -169,9 +177,9 @@ async function initMediaRecorder(stream) {
 }
 
 async function sendDataToBackground(e) {
-    console.log("sending blob to background ",e.data)
+    console.log("sending blob to background ", e.data)
     const url = URL.createObjectURL(e.data);
-    chrome.runtime.sendMessage({action: "uploadBlob",url});
+    chrome.runtime.sendMessage({action: "anotherBlob", url});
 }
 
 function turnPlayBtnToStopBtn() {

@@ -7,7 +7,7 @@ chrome.runtime.onMessage.addListener(
         if (request.action === 'setUp') setUp()
         if (request.action === 'ready') setReady()
         if (request.action === 'whatState') informContentWhatState(sender)
-        if (request.action === 'uploadBlob') uploadBlob(request)
+        if (request.action === 'anotherBlob') handleAnotherBlob(request)
         if (request.action === 'stop') downloadVideo(request)
     })
 
@@ -51,7 +51,7 @@ function check_if_user_connected() {
 
 let blobs = [];
 
-async function uploadBlob(request) {
+async function handleAnotherBlob(request) {
     try {
         const blob = await fetch(request.url).then(r => r.blob());
         URL.revokeObjectURL(request.url);
@@ -65,7 +65,9 @@ async function downloadVideo(request) {
     try {
         const blob = new Blob(blobs, {type: "video/webm"});
         const url = URL.createObjectURL(blob);
-        chrome.downloads.download({url, filename: new Date().getTime().toString()});
+        chrome.downloads.download({url, filename: 'your new recording'},()=>{
+            blobs=[];
+        });
     } catch (e) {
         return null
     }
