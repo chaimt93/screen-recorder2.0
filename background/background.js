@@ -9,7 +9,9 @@ chrome.runtime.onMessage.addListener(
         if (request.action === 'whatState') informContentWhatState(sender)
         if (request.action === 'anotherBlob') handleAnotherBlob(request)
         if (request.action === 'stop') downloadVideo(request)
+        if (request.action === 'cancel') cancelVideo(request)
     })
+let blobs = [];
 
 function informContentWhatState(sender) {
     try {
@@ -40,6 +42,10 @@ function setReady() {
     }
 }
 
+function cancelVideo() {
+    blobs = [];
+}
+
 function check_if_user_connected() {
     try {
         const user = JSON.parse(localStorage.getItem('screen_recorder_user') || '{}')
@@ -48,8 +54,6 @@ function check_if_user_connected() {
         return null
     }
 }
-
-let blobs = [];
 
 async function handleAnotherBlob(request) {
     try {
@@ -65,8 +69,8 @@ async function downloadVideo(request) {
     try {
         const blob = new Blob(blobs, {type: "video/webm"});
         const url = URL.createObjectURL(blob);
-        chrome.downloads.download({url, filename: 'your new recording'},()=>{
-            blobs=[];
+        chrome.downloads.download({url, filename: 'your new recording'}, () => {
+            blobs = []
         });
     } catch (e) {
         return null
